@@ -10,20 +10,29 @@ composer require stellify/laravel
 
 ### 2. Create Export Database
 
-Create a new MySQL database where your Laravel project will be exported:
+Create a new database where your Laravel project will be exported:
 
+**MySQL:**
 ```sql
 CREATE DATABASE stellify_export CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 ```
 
-Then create the required tables using the SQL provided in the main [README.md](README.md#step-3-create-required-tables).
+**PostgreSQL:**
+```sql
+CREATE DATABASE stellify_export;
+```
+
+**SQLite:**
+```bash
+touch database/stellify.sqlite
+```
 
 ### 3. Configure Database Connection
 
 Add to `config/database.php`:
 ```php
 'stellify' => [
-    'driver' => 'mysql',
+    'driver' => env('STELLIFY_DB_DRIVER', 'mysql'),
     'host' => env('STELLIFY_DB_HOST', '127.0.0.1'),
     'database' => env('STELLIFY_DB_DATABASE', 'stellify_export'),
     'username' => env('STELLIFY_DB_USERNAME', 'root'),
@@ -35,20 +44,33 @@ Add to `config/database.php`:
 
 Add to `.env`:
 ```env
+STELLIFY_DB_DRIVER=mysql
 STELLIFY_DB_HOST=127.0.0.1
 STELLIFY_DB_DATABASE=stellify_export
 STELLIFY_DB_USERNAME=root
 STELLIFY_DB_PASSWORD=
 ```
 
-### 4. Run Export
+### 4. Run Migrations
+
+Publish the Stellify migrations:
+```bash
+php artisan vendor:publish --tag=stellify-migrations
+```
+
+Run migrations (they automatically use the Stellify database):
+```bash
+php artisan migrate
+```
+
+### 5. Run Export
 ```bash
 php artisan stellify:export
 ```
 
 This will parse your Laravel project and export it to your database.
 
-### 5. Connect Stellify to Your Database
+### 6. Connect Stellify to Your Database
 
 1. Log into [Stellify.io](https://stellify.io)
 2. Go to Project Settings
@@ -170,9 +192,10 @@ After export:
 
 **Important Notes:**
 - **Your data stays in your database** - Stellify reads from it, you own it
-- You can use a local database (MySQL on your machine) or a hosted database (AWS RDS, DigitalOcean, etc.)
+- **Database agnostic** - Works with MySQL, PostgreSQL, SQLite, SQL Server
+- You can use a local database or a hosted database (AWS RDS, DigitalOcean, etc.)
 - For production/team use, we recommend a hosted database that all team members and Stellify can access
-- For local development/testing, a local MySQL database works great
+- For local development/testing, a local database works great
 
 ## Support
 

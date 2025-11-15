@@ -24,6 +24,11 @@ class StellifyServiceProvider extends ServiceProvider
             $this->commands([
                 ExportCommand::class,
             ]);
+
+            // Publish migrations
+            $this->publishes([
+                __DIR__.'/../database/migrations' => database_path('migrations'),
+            ], 'stellify-migrations');
         }
     }
 }

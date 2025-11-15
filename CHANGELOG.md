@@ -22,6 +22,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Relationship tracking via UUIDs
 - Comprehensive error handling
 - Progress feedback during export
+- **Database-agnostic migrations** - Works with MySQL, PostgreSQL, SQLite, SQL Server
+- **Migration publishing** - Use Laravel's migration system instead of raw SQL
 
 ### Supported Laravel Versions
 - Laravel 10.x
@@ -31,6 +33,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - PHP 8.1
 - PHP 8.2
 - PHP 8.3
+
+### Supported Databases
+- MySQL 8.0+
+- PostgreSQL 10+
+- SQLite 3.8.8+
+- SQL Server 2017+
 
 ## [1.0.0] - TBD
 

@@ -16,10 +16,19 @@ The service provider will be automatically discovered by Laravel.
 
 ### Step 1: Create a Database for Export
 
-Create a new MySQL database where your Laravel project will be exported. This can be:
+Create a new database where your Laravel project will be exported. This can be:
 - A local MySQL database on your machine
+- A PostgreSQL database
 - A hosted database (AWS RDS, DigitalOcean, etc.)
-- Any MySQL-compatible database you control
+- Any database supported by Laravel
+
+```sql
+# MySQL
+CREATE DATABASE stellify_export CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+# PostgreSQL
+CREATE DATABASE stellify_export;
+```
 
 ### Step 2: Add Database Connection
 
@@ -30,7 +39,7 @@ Add the export database connection to `config/database.php`:
     // ... existing connections
     
     'stellify' => [
-        'driver' => 'mysql',
+        'driver' => env('STELLIFY_DB_DRIVER', 'mysql'),
         'host' => env('STELLIFY_DB_HOST', '127.0.0.1'),
         'port' => env('STELLIFY_DB_PORT', '3306'),
         'database' => env('STELLIFY_DB_DATABASE', 'stellify_export'),
@@ -48,141 +57,28 @@ Add the export database connection to `config/database.php`:
 Then add to your `.env`:
 
 ```env
+STELLIFY_DB_DRIVER=mysql
 STELLIFY_DB_HOST=127.0.0.1
 STELLIFY_DB_DATABASE=stellify_export
 STELLIFY_DB_USERNAME=root
 STELLIFY_DB_PASSWORD=
 ```
 
-### Step 3: Create Required Tables
+### Step 3: Publish and Run Migrations
 
-The database needs the following tables. Run this SQL to create them:
+Publish the Stellify migrations:
 
-```sql
-CREATE TABLE `directories` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `project_id` varchar(100) DEFAULT NULL,
-  `uuid` varchar(100) DEFAULT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `type` varchar(100) DEFAULT NULL,
-  `data` json DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `files` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `project_id` varchar(100) DEFAULT NULL,
-  `uuid` varchar(100) DEFAULT NULL,
-  `namespace` varchar(100) DEFAULT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `type` varchar(100) DEFAULT NULL,
-  `public` bit(1) DEFAULT b'0',
-  `data` json DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `methods` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `project_id` varchar(100) DEFAULT NULL,
-  `type` varchar(100) DEFAULT NULL,
-  `uuid` varchar(100) DEFAULT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  `data` json DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `statements` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `uuid` varchar(100) DEFAULT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `type` varchar(100) DEFAULT NULL,
-  `project_id` varchar(100) DEFAULT NULL,
-  `data` json DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `clauses` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` varchar(100) DEFAULT NULL,
-  `project_id` varchar(100) DEFAULT NULL,
-  `uuid` varchar(100) DEFAULT NULL,
-  `type` varchar(100) DEFAULT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `description` varchar(255) DEFAULT NULL,
-  `data` json DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `routes` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int NOT NULL,
-  `project_id` varchar(255) NOT NULL,
-  `name` varchar(255) DEFAULT NULL,
-  `uuid` varchar(255) NOT NULL,
-  `path` varchar(255) NOT NULL DEFAULT '',
-  `controller` varchar(255) DEFAULT '',
-  `controller_method` varchar(255) DEFAULT '',
-  `middleware_group` varchar(255) NOT NULL DEFAULT 'GET',
-  `redirect_url` varchar(255) NOT NULL DEFAULT '',
-  `status_code` varchar(3) NOT NULL DEFAULT '',
-  `type` varchar(255) DEFAULT 'web',
-  `method` varchar(10) NOT NULL DEFAULT 'GET',
-  `public` bit(1) DEFAULT b'0',
-  `ssr` bit(1) DEFAULT b'0',
-  `email_verify` bit(1) DEFAULT b'0',
-  `subview` bit(1) DEFAULT b'0',
-  `data` json NOT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `elements` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `user_id` int DEFAULT NULL,
-  `project_id` varchar(100) DEFAULT NULL,
-  `uuid` varchar(100) NOT NULL,
-  `name` varchar(100) DEFAULT NULL,
-  `type` varchar(100) DEFAULT NULL,
-  `data` json NOT NULL,
-  `deleted_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-
-CREATE TABLE `settings` (
-  `id` int unsigned NOT NULL AUTO_INCREMENT,
-  `project_id` varchar(199) NOT NULL DEFAULT '',
-  `name` varchar(199) NOT NULL DEFAULT '',
-  `active_domain` varchar(199) NOT NULL DEFAULT '',
-  `data` json NOT NULL,
-  `updated_at` timestamp NULL DEFAULT NULL,
-  `created_at` timestamp NULL DEFAULT NULL,
-  PRIMARY KEY (`id`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```bash
+php artisan vendor:publish --tag=stellify-migrations
 ```
+
+Then run the migrations (they automatically use the `stellify` connection):
+
+```bash
+php artisan migrate
+```
+
+This will create all the required tables in your export database.
 
 ## Usage
 
@@ -343,7 +239,7 @@ This enables:
 
 - PHP 8.1 or higher
 - Laravel 10.x or 11.x
-- MySQL 8.0+ or MariaDB 10.3+ database (for export storage)
+- Any Laravel-supported database (MySQL, PostgreSQL, SQLite, SQL Server)
 - Database credentials to configure Stellify platform
 
 ## Troubleshooting

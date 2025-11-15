@@ -171,7 +171,7 @@ Maps the Laravel directory structure:
 User runs: php artisan stellify:export --only=controllers
 
 1. ExportCommand::handle() starts
-2. Validates Stellify database connection
+2. Validates database connection (user's database, not Stellify's)
 3. Determines paths to scan (app/Http/Controllers)
 4. DirectoryParser scans and exports directory structure
 5. PhpFileParser parses each PHP file:
@@ -179,12 +179,14 @@ User runs: php artisan stellify:export --only=controllers
    b. AstVisitor traverses AST
    c. Generates UUIDs for all elements
    d. Returns structured JSON
-6. ExportCommand bulk inserts:
+6. ExportCommand bulk inserts to user's database:
    - files table
    - methods table
    - statements table
    - clauses table
 7. Completion message displayed
+8. User configures Stellify platform with their database credentials
+9. Stellify reads from user's database to display the project
 ```
 
 ## Key Features

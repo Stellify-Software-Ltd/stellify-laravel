@@ -8,15 +8,26 @@ cd your-laravel-project
 composer require stellify/laravel
 ```
 
-### 2. Configure Database
+### 2. Create Export Database
+
+Create a new MySQL database where your Laravel project will be exported:
+
+```sql
+CREATE DATABASE stellify_export CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+```
+
+Then create the required tables using the SQL provided in the main [README.md](README.md#step-3-create-required-tables).
+
+### 3. Configure Database Connection
+
 Add to `config/database.php`:
 ```php
 'stellify' => [
     'driver' => 'mysql',
-    'host' => env('STELLIFY_DB_HOST'),
-    'database' => env('STELLIFY_DB_DATABASE'),
-    'username' => env('STELLIFY_DB_USERNAME'),
-    'password' => env('STELLIFY_DB_PASSWORD'),
+    'host' => env('STELLIFY_DB_HOST', '127.0.0.1'),
+    'database' => env('STELLIFY_DB_DATABASE', 'stellify_export'),
+    'username' => env('STELLIFY_DB_USERNAME', 'root'),
+    'password' => env('STELLIFY_DB_PASSWORD', ''),
     'charset' => 'utf8mb4',
     'collation' => 'utf8mb4_unicode_ci',
 ],
@@ -24,18 +35,31 @@ Add to `config/database.php`:
 
 Add to `.env`:
 ```env
-STELLIFY_DB_HOST=your-stellify-host
-STELLIFY_DB_DATABASE=your-database
-STELLIFY_DB_USERNAME=your-username
-STELLIFY_DB_PASSWORD=your-password
+STELLIFY_DB_HOST=127.0.0.1
+STELLIFY_DB_DATABASE=stellify_export
+STELLIFY_DB_USERNAME=root
+STELLIFY_DB_PASSWORD=
 ```
 
-### 3. Run Export
+### 4. Run Export
 ```bash
 php artisan stellify:export
 ```
 
-That's it! Your project is now in Stellify's database.
+This will parse your Laravel project and export it to your database.
+
+### 5. Connect Stellify to Your Database
+
+1. Log into [Stellify.io](https://stellify.io)
+2. Go to Project Settings
+3. Enter your database credentials:
+   - Host: Same as STELLIFY_DB_HOST
+   - Database: Same as STELLIFY_DB_DATABASE
+   - Username: Same as STELLIFY_DB_USERNAME
+   - Password: Same as STELLIFY_DB_PASSWORD
+4. Stellify will connect to your database and load your project
+
+That's it! Your project is now in Stellify.
 
 ## For Package Development
 
@@ -108,8 +132,9 @@ php artisan stellify:export --connection=my_stellify_db
 
 ### "Connection refused"
 - Check your `.env` STELLIFY_DB_* settings
-- Ensure the database is accessible from your machine
-- Test connection: `php artisan tinker` then `DB::connection('stellify')->getPdo()`
+- Make sure the MySQL server is running: `sudo systemctl status mysql`
+- Verify you can connect: `mysql -h 127.0.0.1 -u root -p stellify_export`
+- Test connection in Laravel: `php artisan tinker` then `DB::connection('stellify')->getPdo()`
 
 ### "Class not found"
 - Run `composer dump-autoload`
@@ -137,11 +162,17 @@ php artisan stellify:export --connection=my_stellify_db
 ## Next Steps
 
 After export:
-1. Open Stellify IDE
-2. Your project structure will be visible
+1. Configure Stellify platform with your database credentials
+2. Your project structure will be visible in Stellify
 3. Start collaborative development
 4. Make changes in Stellify
-5. Changes sync back to your Laravel project
+5. Changes are stored in your database
+
+**Important Notes:**
+- **Your data stays in your database** - Stellify reads from it, you own it
+- You can use a local database (MySQL on your machine) or a hosted database (AWS RDS, DigitalOcean, etc.)
+- For production/team use, we recommend a hosted database that all team members and Stellify can access
+- For local development/testing, a local MySQL database works great
 
 ## Support
 

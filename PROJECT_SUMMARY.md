@@ -115,7 +115,7 @@ STELLIFY_DB_PASSWORD=password
 
 ### Data Flow
 ```
-Laravel Project
+Laravel Project (on user's machine)
     ↓
 PhpFileParser (uses nikic/php-parser)
     ↓
@@ -127,24 +127,38 @@ JSON Structures with UUIDs
     ↓
 ExportCommand (bulk inserts)
     ↓
-Stellify Database Tables
+User's MySQL Database (local or hosted)
+    ↓
+Stellify Platform (reads from user's database)
 ```
+
+**Key Architecture Points:**
+- Users export to **their own database** (not Stellify's)
+- Database can be local MySQL or hosted (AWS RDS, DigitalOcean, etc.)
+- Stellify platform connects to user's database using credentials they provide
+- Users own and control their data completely
 
 ## Benefits
 
 ### For Stellify
-- ✅ **Zero infrastructure costs** - Users parse on their own machines
+- ✅ **Zero infrastructure costs** - No parsing servers needed
+- ✅ **Zero storage costs** - Users store data in their own databases
 - ✅ **Eliminates parsing bottleneck** - No server-side parsing needed
-- ✅ **Easier scaling** - Database storage only, no compute
+- ✅ **Better security** - Never handle user's source code directly
+- ✅ **Easier scaling** - Just read from user databases, no compute
 - ✅ **Better user experience** - Fast local parsing vs waiting for server
-- ✅ **Self-hosting opportunity** - Enterprise customers can run entirely on-premise
+- ✅ **Self-hosting ready** - Enterprise customers can run entirely on-premise
+- ✅ **Multi-tenancy simplified** - Each user has their own database
 
 ### For Users
-- ✅ **Fast import** - Local parsing is quick
+- ✅ **Fast import** - Local parsing is instant
+- ✅ **Own their data** - Data lives in database they control
+- ✅ **Privacy** - Source code never leaves their infrastructure during export
 - ✅ **Familiar workflow** - Uses standard Artisan commands
-- ✅ **Privacy** - Code stays local until they're ready to upload
 - ✅ **Selective export** - Only export what they need
 - ✅ **No API limits** - Parse as much as they want
+- ✅ **Works offline** - Can export without internet connection
+- ✅ **Choose hosting** - Local MySQL or hosted database (their choice)
 
 ## Files Included
 
@@ -207,11 +221,20 @@ stellify-laravel/
 
 This approach positions Stellify uniquely:
 
-1. **Cost efficiency** - No parsing infrastructure needed
-2. **Speed** - Instant local parsing vs server queues
-3. **Privacy** - Enterprise-friendly (code stays local)
-4. **Flexibility** - Users control what gets exported
-5. **Simplicity** - Just a composer package and one command
+1. **Zero infrastructure costs** - No parsing or storage infrastructure needed
+2. **Data ownership** - Users own their data completely (it's in their database)
+3. **Privacy first** - Source code never sent to Stellify during export
+4. **Speed** - Instant local parsing vs server queues
+5. **Flexibility** - Works with local or hosted databases, users choose
+6. **Enterprise ready** - Perfect for self-hosted, on-premise scenarios
+7. **Simplicity** - Just a composer package and one command
+8. **Multi-tenancy** - Each user naturally has their own database
+
+**This is a completely different architecture from competitors:**
+- Most platforms require uploading code to their servers
+- Most platforms do server-side parsing (expensive, slow)
+- Most platforms store data in their infrastructure (privacy concerns)
+- Stellify is just a front-end that reads from user databases
 
 ## Success Metrics
 

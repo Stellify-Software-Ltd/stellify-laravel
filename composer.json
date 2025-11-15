@@ -1,0 +1,32 @@
+{
+    "name": "stellify/laravel",
+    "description": "Parse Laravel projects into Stellify's database-driven development format",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Stellify",
+            "email": "support@stellify.io"
+        }
+    ],
+    "require": {
+        "php": "^8.1",
+        "illuminate/support": "^10.0|^11.0",
+        "illuminate/console": "^10.0|^11.0",
+        "illuminate/database": "^10.0|^11.0",
+        "nikic/php-parser": "^5.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Stellify\\Laravel\\": "src/"
+        }
+    },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Stellify\\Laravel\\StellifyServiceProvider"
+            ]
+        }
+    },
+    "minimum-stability": "stable"
+}

@@ -287,8 +287,12 @@ php -d memory_limit=512M artisan stellify:export
 ## Support
 
 For issues, questions, or feature requests, please visit:
-- [Stellify.io](https://stellify.io)
+- [Stellisoft.com](https://stellisoft.com)
 - [GitHub Issues](https://github.com/stellify/laravel-parser)
+
+or email:
+
+- [support](mailto:support@stellisoft.com)
 
 ## License
 

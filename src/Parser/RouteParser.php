@@ -54,9 +54,9 @@ class RouteParser
         // Check for auth middleware
         $requiresAuth = in_array('auth', $middleware) || in_array('auth:sanctum', $middleware);
         $emailVerify = in_array('verified', $middleware);
-
+        $uuid = Str::uuid()->toString();
         return [
-            'uuid' => Str::uuid()->toString(),
+            'uuid' => $uuid,
             'user_id' => null,
             'project_id' => null,
             'name' => $route->getName(),
@@ -73,6 +73,20 @@ class RouteParser
             'email_verify' => $emailVerify,
             'subview' => false,
             'data' => json_encode([
+                'uuid' => $uuid,
+                'name' => $route->getName(),
+                'path' => $route->uri(),
+                'controller' => $controllerClass,
+                'controller_method' => $controllerMethod,
+                'middleware_group' => $middlewareGroup,
+                'redirect_url' => '',
+                'status_code' => '',
+                'type' => in_array('api', $middleware) ? 'api' : 'web',
+                'method' => implode('|', $route->methods()),
+                'public' => !$requiresAuth,
+                'ssr' => false,
+                'email_verify' => $emailVerify,
+                'subview' => false,
                 'middleware' => $middleware,
                 'domain' => $route->getDomain(),
                 'where' => $route->wheres,

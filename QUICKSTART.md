@@ -173,12 +173,13 @@ php artisan stellify:export --connection=my_stellify_db
 
 ## What Gets Exported
 
-✅ **Directories**: App structure (controllers, models, services, etc.)  
+✅ **Directories**: App structure (controllers, models, services, views, etc.)  
 ✅ **Files**: All PHP classes with namespaces and metadata  
 ✅ **Methods**: Functions and class methods with parameters  
 ✅ **Statements**: Code statements (assignments, returns, conditionals, loops)  
 ✅ **Clauses**: Atomic code elements (variables, operators, method calls)  
 ✅ **Routes**: All HTTP routes with middleware and controllers  
+✅ **Elements**: HTML elements from Blade templates with DOM structure  
 ✅ **Config**: Configuration files as key-value pairs  
 
 ## Next Steps

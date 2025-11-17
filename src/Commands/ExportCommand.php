@@ -8,11 +8,12 @@ use Stellify\Laravel\Parser\PhpFileParser;
 use Stellify\Laravel\Parser\RouteParser;
 use Stellify\Laravel\Parser\ConfigParser;
 use Stellify\Laravel\Parser\DirectoryParser;
+use Stellify\Laravel\Parser\BladeParser;
 
 class ExportCommand extends Command
 {
     protected $signature = 'stellify:export 
-                            {--only= : Only export specific types (routes,controllers,models,config)}
+                            {--only= : Only export specific types (routes,controllers,models,config,views)}
                             {--exclude= : Exclude specific paths (comma-separated)}
                             {--path= : Only export files from specific path}
                             {--connection=stellify : Database connection to use}';
@@ -23,6 +24,7 @@ class ExportCommand extends Command
     private $routeParser;
     private $configParser;
     private $directoryParser;
+    private $bladeParser;
     private $connection;
 
     public function __construct()
@@ -33,6 +35,7 @@ class ExportCommand extends Command
         $this->routeParser = new RouteParser();
         $this->configParser = new ConfigParser();
         $this->directoryParser = new DirectoryParser();
+        $this->bladeParser = new BladeParser();
     }
 
     public function handle()
@@ -57,6 +60,7 @@ class ExportCommand extends Command
         $exportControllers = !$only || in_array('controllers', $only);
         $exportModels = !$only || in_array('models', $only);
         $exportConfig = !$only || in_array('config', $only);
+        $exportViews = !$only || in_array('views', $only);
 
         // Build paths to scan
         $pathsToScan = [];
@@ -127,6 +131,20 @@ class ExportCommand extends Command
             $this->info('Exported ' . count($settings) . ' config files');
         }
 
+        // Export Blade views
+        if ($exportViews) {
+            $this->info('Parsing Blade templates...');
+            $bladeData = $this->bladeParser->parseBladeFiles($basePath . '/resources/views');
+            
+            $this->exportElements($bladeData['elements']);
+            $this->exportStatements($bladeData['statements']);
+            $this->exportClauses($bladeData['clauses']);
+            
+            $this->info('Exported ' . count($bladeData['elements']) . ' HTML elements from Blade templates');
+            $this->info('Exported ' . count($bladeData['statements']) . ' Blade directive statements');
+            $this->info('Exported ' . count($bladeData['clauses']) . ' Blade clauses');
+        }
+
         $this->info('✅ Export completed successfully!');
         
         return 0;
@@ -166,12 +184,18 @@ class ExportCommand extends Command
         DB::connection($this->connection)
             ->table('files')
             ->insert(array_map(function($file) {
-                return array_merge($file, [
+                return [
+                    'uuid' => $file['uuid'],
                     'user_id' => null,
                     'project_id' => null,
+                    'namespace' => $file['namespace'] ?? null,
+                    'name' => $file['name'] ?? null,
+                    'type' => $file['type'] ?? null,
+                    'public' => $file['public'] ?? true,
+                    'data' => json_encode($file),
                     'created_at' => now(),
                     'updated_at' => now()
-                ]);
+                ];
             }, $files));
     }
 
@@ -263,5 +287,25 @@ class ExportCommand extends Command
                     'updated_at' => now()
                 ]);
             }, $settings));
+    }
+
+    private function exportElements(array $elements): void
+    {
+        if (empty($elements)) return;
+
+        DB::connection($this->connection)
+            ->table('elements')
+            ->insert(array_map(function($element) {
+                return [
+                    'uuid' => $element['uuid'],
+                    'user_id' => null,
+                    'project_id' => null,
+                    'name' => $element['tag'] ?? null,
+                    'type' => $element['type'] ?? 'element',
+                    'data' => json_encode($element),
+                    'created_at' => now(),
+                    'updated_at' => now()
+                ];
+            }, $elements));
     }
 }

@@ -124,6 +124,7 @@ Available types:
 - `controllers` - Controller classes
 - `models` - Eloquent models
 - `config` - Configuration files
+- `views` - Blade templates (HTML elements)
 
 ### Export Specific Paths
 
@@ -159,6 +160,7 @@ All directory structures are mapped, including:
 - Models
 - Middleware
 - Services
+- Views
 - Custom app directories
 
 ### Files
@@ -198,6 +200,14 @@ All Laravel routes with:
 - Middleware
 - Named routes
 - Route parameters
+
+### Elements
+HTML elements from Blade templates:
+- DOM structure
+- Attributes
+- Text content
+- Parent-child relationships
+- Linked to view names
 
 ### Settings
 Configuration files converted to key-value pairs:

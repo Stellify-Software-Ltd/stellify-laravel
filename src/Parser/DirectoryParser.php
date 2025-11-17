@@ -54,8 +54,10 @@ class DirectoryParser
             'name' => basename($directory),
             'type' => $this->getDirectoryType($relativePath),
             'data' => json_encode([
-                'path' => $relativePath,
-                'full_path' => $directory,
+                'uuid' => $uuid,
+                'name' => basename($directory),
+                'type' => $this->getDirectoryType($relativePath),
+                'data' => []
             ])
         ];
 

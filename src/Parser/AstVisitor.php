@@ -31,57 +31,100 @@ class AstVisitor extends NodeVisitorAbstract
 
     private function processFunction(Node\Stmt\Function_ $node) {
         $uuid = $this->generateUuid();
-        $params = array_map(function($param) {
+        
+        // Process parameters as clauses
+        $parameterUuids = [];
+        foreach ($node->params as $param) {
             $paramUuid = $this->generateUuid();
-            return [
+            
+            // Determine parameter type
+            $paramType = 'mixed'; // default
+            if ($param->type) {
+                if ($param->type instanceof Node\Name) {
+                    $paramType = $param->type->toString();
+                } elseif ($param->type instanceof Node\Identifier) {
+                    $paramType = $param->type->name;
+                }
+            }
+            
+            $this->clauses[$paramUuid] = [
                 'uuid' => $paramUuid,
                 'name' => $param->var->name,
-                'type' => 'variable',
+                'type' => $paramType,  // Use actual type (string, int, User, etc.)
             ];
-        }, $node->params);
+            $parameterUuids[] = $paramUuid;
+        }
 
-        $this->functions[] = [
+        $functionData = [
             'uuid' => $uuid,
             'name' => $node->name->name,
             'type' => 'function',
-            'params' => $params,
+            'parameters' => $parameterUuids,
             'data' => [],
         ];
 
-        // Store reference to current function
+        $this->functions[] = $functionData;
         $this->currentFunction = &$this->functions[count($this->functions) - 1];
     }
 
     private function processClassMethod(Node\Stmt\ClassMethod $node) {
         $uuid = $this->generateUuid();
-        $params = array_map(function($param) {
+        
+        // Determine scope
+        $scope = 'public';
+        if ($node->isPrivate()) {
+            $scope = 'private';
+        } elseif ($node->isProtected()) {
+            $scope = 'protected';
+        }
+
+        // Process parameters as clauses
+        $parameterUuids = [];
+        foreach ($node->params as $param) {
             $paramUuid = $this->generateUuid();
-            return [
+            
+            // Determine parameter type
+            $paramType = 'mixed'; // default
+            if ($param->type) {
+                if ($param->type instanceof Node\Name) {
+                    $paramType = $param->type->toString();
+                } elseif ($param->type instanceof Node\Identifier) {
+                    $paramType = $param->type->name;
+                } elseif ($param->type instanceof Node\NullableType) {
+                    // Handle nullable types like ?string
+                    $innerType = $param->type->type;
+                    if ($innerType instanceof Node\Name) {
+                        $paramType = '?' . $innerType->toString();
+                    } elseif ($innerType instanceof Node\Identifier) {
+                        $paramType = '?' . $innerType->name;
+                    }
+                }
+            }
+            
+            $this->clauses[$paramUuid] = [
                 'uuid' => $paramUuid,
                 'name' => $param->var->name,
-                'type' => 'variable',
+                'type' => $paramType,  // Use actual type (string, int, User, etc.)
             ];
-        }, $node->params);
+            $parameterUuids[] = $paramUuid;
+        }
 
-        $this->functions[] = [
+        $methodData = [
             'uuid' => $uuid,
             'name' => $node->name->name,
             'type' => 'method',
-            'visibility' => $this->getVisibility($node),
-            'static' => $node->isStatic(),
-            'params' => $params,
+            'scope' => $scope,  // Changed from 'visibility'
+            'parameters' => $parameterUuids,  // Changed from 'params'
             'data' => [],
         ];
 
-        // Store reference to current function
-        $this->currentFunction = &$this->functions[count($this->functions) - 1];
-    }
+        // Only add static if true
+        if ($node->isStatic()) {
+            $methodData['static'] = true;
+        }
 
-    private function getVisibility(Node\Stmt\ClassMethod $node): string {
-        if ($node->isPublic()) return 'public';
-        if ($node->isProtected()) return 'protected';
-        if ($node->isPrivate()) return 'private';
-        return 'public';
+        $this->functions[] = $methodData;
+        $this->currentFunction = &$this->functions[count($this->functions) - 1];
     }
 
     private function processAssignment(Node\Expr\Assign $node) {
@@ -90,29 +133,90 @@ class AstVisitor extends NodeVisitorAbstract
         $opUuid = $this->generateUuid();
         $valUuid = $this->generateUuid();
 
+        // Create statement with just uuid and data array (no type field)
         $this->statements[] = [
             'uuid' => $stmtUuid,
-            'type' => 'assignment',
-            'data' => [$varUuid, $opUuid, $valUuid],
+            'data' => [$varUuid, $opUuid, $valUuid]
         ];
 
-        if ($node->var instanceof Node\Expr\Variable) {
-            $this->clauses[$varUuid] = [
-                'uuid' => $varUuid,
-                'type' => 'variable',
-                'name' => $node->var->name,
-            ];
-        }
+        // Variable clause
+        $this->clauses[$varUuid] = [
+            'uuid' => $varUuid,
+            'type' => 'variable',
+            'name' => $node->var->name ?? ''
+        ];
 
+        // Operator clause
         $this->clauses[$opUuid] = [
             'uuid' => $opUuid,
             'type' => 'operator',
-            'name' => '=',
+            'name' => '='
         ];
 
+        // Value clause
         $this->clauses[$valUuid] = $this->processValue($node->expr, $valUuid);
 
-        if ($this->currentFunction) {
+        // Add to current function if exists
+        if ($this->currentFunction !== null) {
+            $this->currentFunction['data'][] = $stmtUuid;
+        }
+    }
+
+    private function processIfStatement(Node\Stmt\If_ $node) {
+        $stmtUuid = $this->generateUuid();
+        $ifUuid = $this->generateUuid();
+        $condUuid = $this->generateUuid();
+
+        // If keyword clause
+        $this->clauses[$ifUuid] = [
+            'uuid' => $ifUuid,
+            'type' => 'keyword',
+            'name' => 'if'
+        ];
+
+        // Condition clause (simplified)
+        $this->clauses[$condUuid] = [
+            'uuid' => $condUuid,
+            'type' => 'condition',
+            'name' => ''
+        ];
+
+        // Create statement (no type field)
+        $this->statements[] = [
+            'uuid' => $stmtUuid,
+            'data' => [$ifUuid, $condUuid]
+        ];
+
+        if ($this->currentFunction !== null) {
+            $this->currentFunction['data'][] = $stmtUuid;
+        }
+    }
+
+    private function processLoop($node) {
+        $stmtUuid = $this->generateUuid();
+        $loopUuid = $this->generateUuid();
+
+        $loopType = 'for';
+        if ($node instanceof Node\Stmt\Foreach_) {
+            $loopType = 'foreach';
+        } elseif ($node instanceof Node\Stmt\While_) {
+            $loopType = 'while';
+        }
+
+        // Loop keyword clause
+        $this->clauses[$loopUuid] = [
+            'uuid' => $loopUuid,
+            'type' => 'keyword',
+            'name' => $loopType
+        ];
+
+        // Create statement (no type field)
+        $this->statements[] = [
+            'uuid' => $stmtUuid,
+            'data' => [$loopUuid]
+        ];
+
+        if ($this->currentFunction !== null) {
             $this->currentFunction['data'][] = $stmtUuid;
         }
     }
@@ -120,60 +224,30 @@ class AstVisitor extends NodeVisitorAbstract
     private function processReturn(Node\Stmt\Return_ $node) {
         $stmtUuid = $this->generateUuid();
         $returnUuid = $this->generateUuid();
-        
-        $data = [$returnUuid];
-        
+
+        // Return keyword clause
         $this->clauses[$returnUuid] = [
             'uuid' => $returnUuid,
             'type' => 'keyword',
-            'name' => 'return',
+            'name' => 'return'
         ];
 
-        if ($node->expr !== null) {
+        $clauseUuids = [$returnUuid];
+
+        // Process return value if exists
+        if ($node->expr) {
             $exprUuid = $this->generateUuid();
-            $data[] = $exprUuid;
             $this->clauses[$exprUuid] = $this->processValue($node->expr, $exprUuid);
+            $clauseUuids[] = $exprUuid;
         }
 
+        // Create statement (no type field)
         $this->statements[] = [
             'uuid' => $stmtUuid,
-            'type' => 'return',
-            'data' => $data,
+            'data' => $clauseUuids
         ];
 
-        if ($this->currentFunction) {
-            $this->currentFunction['data'][] = $stmtUuid;
-        }
-    }
-
-    private function processIfStatement(Node\Stmt\If_ $node) {
-        $stmtUuid = $this->generateUuid();
-        $condUuid = $this->generateUuid();
-
-        $this->statements[] = [
-            'uuid' => $stmtUuid,
-            'type' => 'if',
-            'data' => [$condUuid],
-        ];
-
-        $this->clauses[$condUuid] = $this->processValue($node->cond, $condUuid);
-
-        if ($this->currentFunction) {
-            $this->currentFunction['data'][] = $stmtUuid;
-        }
-    }
-
-    private function processLoop(Node $node) {
-        $stmtUuid = $this->generateUuid();
-        $type = ($node instanceof Node\Stmt\For_) ? 'for' : (($node instanceof Node\Stmt\Foreach_) ? 'foreach' : 'while');
-
-        $this->statements[] = [
-            'uuid' => $stmtUuid,
-            'type' => $type,
-            'data' => [],
-        ];
-
-        if ($this->currentFunction) {
+        if ($this->currentFunction !== null) {
             $this->currentFunction['data'][] = $stmtUuid;
         }
     }
@@ -250,6 +324,39 @@ class AstVisitor extends NodeVisitorAbstract
                 'uuid' => $uuid,
                 'type' => 'static_call',
                 'data' => array_merge([$classUuid, $methodUuid], $argsUuids)
+            ];
+        }
+        if ($node instanceof Node\Expr\FuncCall) {
+            $functionUuid = $this->generateUuid();
+            $argsUuids = [];
+            
+            // Get function name
+            $functionName = '';
+            if ($node->name instanceof Node\Name) {
+                $functionName = $node->name->toString();
+            } elseif ($node->name instanceof Node\Expr\Variable) {
+                $functionName = '$' . $node->name->name;
+            }
+            
+            // Process arguments
+            foreach ($node->args as $arg) {
+                $argUuid = $this->generateUuid();
+                $argsUuids[] = $argUuid;
+                $this->clauses[$argUuid] = $this->processValue($arg->value, $argUuid);
+            }
+            
+            // Store function reference
+            $this->clauses[$functionUuid] = [
+                'uuid' => $functionUuid,
+                'type' => 'function',
+                'name' => $functionName
+            ];
+            
+            // Return the function call structure
+            return [
+                'uuid' => $uuid,
+                'type' => 'function_call',
+                'data' => array_merge([$functionUuid], $argsUuids)
             ];
         }
         return ['uuid' => $uuid, 'type' => 'unknown', 'name' => ''];

@@ -13,6 +13,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Route parsing from Laravel's route collection
 - Config file parsing with dot notation
 - Directory structure mapping
+- **Blade template parsing** - Converts Blade views to HTML elements
 - Artisan command with multiple export options
 - Support for selective exports (--only flag)
 - Path exclusion support (--exclude flag)

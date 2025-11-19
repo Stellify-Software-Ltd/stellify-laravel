@@ -13,92 +13,36 @@ class AstVisitor extends NodeVisitorAbstract
     private array $clauses = [];
     private $currentFunction = null;
     private array $operatorMap;
+    private array $laravelClassMap;
+    private array $laravelMethodMap;
 
     public function __construct()
     {
-        $this->initializeOperatorMap();
+        $this->loadPredefinedUuids();
     }
 
-    private function initializeOperatorMap()
+    private function loadPredefinedUuids()
     {
-        // Map PHP-Parser operators to predefined UUIDs from ClauseController
-        $this->operatorMap = [
-            // Comparison operators
-            'Expr_BinaryOp_Equal' => '849068cf-b00a-41ae-98b3-14b7c3bb3225',           // ==  (T_IS_EQUAL)
-            'Expr_BinaryOp_NotEqual' => '6cd10031-a0df-4744-9d52-1c678edfdff5',        // !=  (T_IS_NOT_EQUAL)
-            'Expr_BinaryOp_Identical' => 'e84f1d91-d473-4780-a49e-a8fa182c9f79',       // === (T_IS_IDENTICAL)
-            'Expr_BinaryOp_NotIdentical' => '139bca06-3cf3-44c4-8194-ec45066af6d3',    // !== (T_IS_NOT_IDENTICAL)
-            'Expr_BinaryOp_Greater' => 'b2657fdf-e6c3-4139-ad1e-05e49731e8b2',         // >   (T_GREATER)
-            'Expr_BinaryOp_GreaterOrEqual' => 'f1391f5c-7f63-49c1-ad25-95d1bcd703b1',  // >=  (T_GREATER_EQUAL)
-            'Expr_BinaryOp_Smaller' => 'c86ecbe7-ad2c-4350-81ab-4632f2955894',         // <   (T_LESS)
-            'Expr_BinaryOp_SmallerOrEqual' => '256a078b-6eb4-4537-8cea-2769f0eddaa6',  // <=  (T_LESS_EQUAL)
-            
-            // Logical operators
-            'Expr_BinaryOp_BooleanAnd' => '349643cd-9f3f-4803-aa6c-4539b74fd959',      // &&  (logical_and)
-            'Expr_BinaryOp_BooleanOr' => '4a500c21-4e98-4d68-9042-7ac7755f0b0e',       // ||  (logical_or)
-            'Expr_BinaryOp_LogicalAnd' => '349643cd-9f3f-4803-aa6c-4539b74fd959',      // and
-            'Expr_BinaryOp_LogicalOr' => '4a500c21-4e98-4d68-9042-7ac7755f0b0e',       // or
-            
-            // Arithmetic operators
-            'Expr_BinaryOp_Plus' => '970957d7-e538-4484-9e7f-1bf7339b742e',            // +   (T_PLUS)
-            'Expr_BinaryOp_Minus' => 'd958ffb7-2113-4b19-aaae-baa747ae85fb',           // -   (T_MINUS)
-            'Expr_BinaryOp_Mul' => 'f9ecc67c-2ae4-4be1-9f06-b6f1eff56ab9',             // *   (T_MUL)
-            'Expr_BinaryOp_Div' => '0d51cde0-fb14-4a8a-a533-bacae104914e',             // /   (T_DIV)
-            'Expr_BinaryOp_Mod' => '00d4f849-5321-4592-931e-04d4feff0062',             // %   (T_MOD)
-            'Expr_BinaryOp_Pow' => '85fb1131-8197-49e1-9556-f28a1610b946',             // **  (T_POW)
-            
-            // Assignment operators
-            'Expr_Assign' => 'a42f25f4-e5c0-40ea-9446-d209e226f9c3',                   // =   (T_EQUALS)
-            'Expr_AssignOp_Plus' => 'f5e6941b-4c62-46b2-9ccc-0a3780c6f28d',            // +=  (T_PLUS_EQUAL)
-            'Expr_AssignOp_Minus' => '15db64fc-f5db-44a4-aa6a-2a4af68eb4a1',           // -=  (T_MINUS_EQUAL)
-            'Expr_AssignOp_Mul' => '43b8c336-867e-4b54-a898-7703969527bc',             // *=  (T_MUL_EQUAL)
-            'Expr_AssignOp_Div' => '4c68f7e2-d1dc-4ef3-85f4-bc53e6014037',             // /=  (T_DIV_EQUAL)
-            'Expr_AssignOp_Mod' => '612b4f29-84c8-460c-bd06-c5be03e687a9',             // %=  (T_MOD_EQUAL)
-            'Expr_AssignOp_Pow' => '1fd9032c-ae1c-4bee-a456-ccad23c5dee7',             // **= (T_POW_EQUAL)
-            
-            // Other operators
-            'Expr_BinaryOp_Concat' => '19e37355-a3ea-408e-bce0-44377f75ce37',          // .   (T_CONCAT)
-            'Expr_BinaryOp_Coalesce' => 'ce413e0e-1d6e-46f2-8499-2fb6ee64ee66',        // ??  (T_COALESCE)
-            'Expr_BinaryOp_Spaceship' => 'bc4b9cd5-1476-4ab6-9a1c-03b36a3165d4',       // <=> (T_SPACESHIP)
-            'Expr_Instanceof' => 'a41be7e3-ff7d-4afc-9cf4-622cff71ab84',               // instanceof (T_INSTANCEOF)
-
-            // Special operators
-            'T_DOUBLE_COLON' => '666adff5-adee-41d4-af81-09ab3624af76',                // ::
-            'T_OBJECT_OPERATOR' => '8209a1b5-42a0-44da-a6de-7fe9dfe81a26',             // ->
-            'T_DOUBLE_ARROW' => 'a83be3b6-ad5a-48df-86a7-d136e71ca16b',                // =>
-            'T_OPEN_PARENTHESIS' => '742b50c0-f142-4e02-8951-8cf5a42419e5',            // (
-            'T_CLOSE_PARENTHESIS' => '81d91855-e13f-4eb4-adab-11d30899ffcc',           // )
-            'T_OPEN_BRACKET' => '45d7b573-4065-4bf5-8642-06e1de248099',                // [
-            'T_CLOSE_BRACKET' => '167be16c-67f5-4d57-bccf-7a7fbd4de3d8',               // ]
-            'T_OPEN_BRACE' => '151ba8d4-80f6-4410-97f1-1d247381eaac',                  // {
-            'T_CLOSE_BRACE' => 'd312a5d3-2abd-4283-ba85-793a74d64dfb',                 // }
-            'T_COMMA' => '90fde00b-665d-4662-af40-bbfb931ed379',                        // ,
-            'T_END_LINE' => 'dac4e03b-4f93-4218-aa36-7cb772552095',                    // ;
-
-            // Keywords
-            'if' => '4b19462a-3fc3-47dd-bd83-9a3635e4d20b',          // T_IF
-            'else' => '41a55d66-fdf8-4345-979b-3714453af961',        // T_ELSE
-            'elseif' => 'cc34e605-8390-4f18-a66f-4885621a1693',      // T_ELSEIF
-            'for' => '23951891-1b84-4fa9-9f53-fe99faabf08e',         // T_FOR
-            'foreach' => '13a0ed23-5db6-411c-8efc-37313ae8b3b3',     // T_FOREACH
-            'while' => 'ec038718-675a-4bd8-aa9d-47ff22be44c4',       // T_WHILE
-            'do' => '04ba7c42-51df-446b-aae4-0d7083c46572',          // T_DO
-            'return' => 'a8cfb8af-76ed-4dc9-974b-8e4c98749125',      // T_RETURN
-            'break' => '6d2bbd61-b650-4c8e-a29b-def43dbedbcf',       // T_BREAK
-            'continue' => '95cce1b1-5d35-4ae2-a0e8-14597de5c93b',    // T_CONTINUE
-            'throw' => 'a76c1423-7160-4dd8-bba2-57ca96a0b0b8',       // T_THROW
-            'try' => '1bd336ac-ceaf-43d0-8c69-e22907cf94f2',         // T_TRY
-            'catch' => '83a7ae87-7da2-444a-97f9-2282f0d9754a',       // T_CATCH
-            'finally' => 'f43da096-7924-442e-9207-cb37d1af231f',    // T_FINALLY
-            'new' => 'd9b6fc21-6dd2-4b9e-ac72-344f1e08bca1',         // T_NEW
-            'this' => '92223eed-6a85-4044-a25a-aacc61b23fdd',        // T_THIS
-            'function' => 'bba06fdb-d55e-45fa-b121-07ed156a10bf',    // T_FUNCTION
-            'class' => 'f5ffc4a0-837d-4a09-b32e-e63888f5a1d8',       // T_CLASS
-            'public' => 'c08c4016-34fb-4ce8-9af3-47f47160f265',      // T_PUBLIC
-            'protected' => 'f8aa05c4-b07f-4471-9fa0-6b78a49c3ef2',   // T_PROTECTED
-            'private' => '0d2c710c-e4ae-4ec5-b0c3-12557560cb3c',     // T_PRIVATE
-            'static' => '1359d451-a9e6-4680-bc8f-f609ce637843',      // T_STATIC
-        ];
+        $jsonPath = __DIR__ . '/../../Config/predefined-uuids.json';
+        
+        if (!file_exists($jsonPath)) {
+            throw new \RuntimeException("Predefined UUIDs file not found at: {$jsonPath}");
+        }
+        
+        $data = json_decode(file_get_contents($jsonPath), true);
+        
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            throw new \RuntimeException("Failed to parse predefined UUIDs JSON: " . json_last_error_msg());
+        }
+        
+        // Merge operators and keywords into single operatorMap
+        $this->operatorMap = array_merge(
+            $data['operators'] ?? [],
+            $data['keywords'] ?? []
+        );
+        
+        $this->laravelClassMap = $data['laravel_classes'] ?? [];
+        $this->laravelMethodMap = $data['laravel_methods'] ?? [];
     }
 
     public function enterNode(Node $node) {
@@ -334,28 +278,32 @@ class AstVisitor extends NodeVisitorAbstract
     {
         // Handle static calls inline: Auth::id()
         if ($node instanceof Node\Expr\StaticCall) {
-            $classUuid = $this->generateUuid();
             $doubleColonUuid = $this->operatorMap['T_DOUBLE_COLON'];
-            $methodUuid = $this->generateUuid();
             $openParenUuid = $this->operatorMap['T_OPEN_PARENTHESIS'];
             $closeParenUuid = $this->operatorMap['T_CLOSE_PARENTHESIS'];
             $commaUuid = $this->operatorMap['T_COMMA'];
             $uuids = [];
             
-            // Class clause
+            // Class clause - use predefined UUID if available
+            $className = $node->class->toString();
+            $classUuid = $this->laravelClassMap[$className] ?? $this->generateUuid();
+            
             $this->clauses[$classUuid] = [
                 'uuid' => $classUuid,
                 'type' => 'class',
-                'name' => $node->class->toString()
+                'name' => $className
             ];
             $uuids[] = $classUuid;
             $uuids[] = $doubleColonUuid;
             
-            // Method clause
+            // Method clause - use predefined UUID if available
+            $methodName = $node->name->toString();
+            $methodUuid = $this->laravelMethodMap[$methodName] ?? $this->generateUuid();
+            
             $this->clauses[$methodUuid] = [
                 'uuid' => $methodUuid,
                 'type' => 'method',
-                'name' => $node->name->toString()
+                'name' => $methodName
             ];
             $uuids[] = $methodUuid;
             
@@ -383,7 +331,6 @@ class AstVisitor extends NodeVisitorAbstract
         // Handle method calls inline: $user->save()
         if ($node instanceof Node\Expr\MethodCall) {
             $arrowUuid = $this->operatorMap['T_OBJECT_OPERATOR'];
-            $methodUuid = $this->generateUuid();
             $openParenUuid = $this->operatorMap['T_OPEN_PARENTHESIS'];
             $closeParenUuid = $this->operatorMap['T_CLOSE_PARENTHESIS'];
             $commaUuid = $this->operatorMap['T_COMMA'];
@@ -394,11 +341,14 @@ class AstVisitor extends NodeVisitorAbstract
             $uuids = array_merge($uuids, $targetUuids);
             $uuids[] = $arrowUuid;
             
-            // Method name
+            // Method name - use predefined UUID if available
+            $methodName = $node->name->toString();
+            $methodUuid = $this->laravelMethodMap[$methodName] ?? $this->generateUuid();
+            
             $this->clauses[$methodUuid] = [
                 'uuid' => $methodUuid,
                 'type' => 'method',
-                'name' => $node->name->toString()
+                'name' => $methodName
             ];
             $uuids[] = $methodUuid;
             
@@ -708,7 +658,6 @@ class AstVisitor extends NodeVisitorAbstract
         if ($node instanceof Node\Expr\MethodCall) {
             $targetUuid = $this->generateUuid();
             $arrowUuid = $this->operatorMap['T_OBJECT_OPERATOR']; // ->
-            $methodUuid = $this->generateUuid();
             $openParenUuid = $this->operatorMap['T_OPEN_PARENTHESIS'];
             $closeParenUuid = $this->operatorMap['T_CLOSE_PARENTHESIS'];
             $commaUuid = $this->operatorMap['T_COMMA'];
@@ -735,11 +684,14 @@ class AstVisitor extends NodeVisitorAbstract
                 }
             }
     
-            // Store method name as clause
+            // Store method name as clause - use predefined UUID if available
+            $methodName = $node->name->toString();
+            $methodUuid = $this->laravelMethodMap[$methodName] ?? $this->generateUuid();
+            
             $this->clauses[$methodUuid] = [
                 'uuid' => $methodUuid,
                 'type' => 'method',
-                'name' => $node->name->toString()
+                'name' => $methodName
             ];
     
             // Create a statement for the method call using the passed-in UUID
@@ -753,9 +705,7 @@ class AstVisitor extends NodeVisitorAbstract
             return null;
         }
         if ($node instanceof Node\Expr\StaticCall) {
-            $classUuid = $this->generateUuid();
             $doubleColonUuid = $this->operatorMap['T_DOUBLE_COLON']; // ::
-            $methodUuid = $this->generateUuid();
             $openParenUuid = $this->operatorMap['T_OPEN_PARENTHESIS'];
             $closeParenUuid = $this->operatorMap['T_CLOSE_PARENTHESIS'];
             $commaUuid = $this->operatorMap['T_COMMA'];
@@ -777,18 +727,24 @@ class AstVisitor extends NodeVisitorAbstract
                 }
             }
     
-            // Store class reference as clause
+            // Store class reference as clause - use predefined UUID if available
+            $className = $node->class->toString();
+            $classUuid = $this->laravelClassMap[$className] ?? $this->generateUuid();
+            
             $this->clauses[$classUuid] = [
                 'uuid' => $classUuid,
                 'type' => 'class',
-                'name' => $node->class->toString()
+                'name' => $className
             ];
     
-            // Store method name as clause
+            // Store method name as clause - use predefined UUID if available
+            $methodName = $node->name->toString();
+            $methodUuid = $this->laravelMethodMap[$methodName] ?? $this->generateUuid();
+            
             $this->clauses[$methodUuid] = [
                 'uuid' => $methodUuid,
                 'type' => 'method',
-                'name' => $node->name->toString()
+                'name' => $methodName
             ];
     
             // Create a statement for the static call using the passed-in UUID
